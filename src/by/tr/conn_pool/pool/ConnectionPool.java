@@ -31,6 +31,9 @@ public class ConnectionPool
 {
 	private final static Logger LOG = LogManager.getRootLogger();
 	
+	private static ConnectionPool instance = null;
+	private static boolean isInit = false;
+	
 	private BlockingQueue<Connection> available;
 	private BlockingQueue<Connection> givenAway;
 	
@@ -40,18 +43,36 @@ public class ConnectionPool
 	private String password;
 	private int poolSize;
 	
-	private ConnectionPool()
+	public static ConnectionPool getInstance()
 	{
-		DBResourceManager dbResourseManager = DBResourceManager.getInstance();
-		
-		this.driverName = dbResourseManager.getValue(DBParameter.DB_DRIVER);
-		this.url = dbResourseManager.getValue(DBParameter.DB_URL);
-		this.user = dbResourseManager.getValue(DBParameter.DB_USER);
-		this.password = dbResourseManager.getValue(DBParameter.DB_PASSWORD);
+		if(instance==null)
+		{
+			instance = new ConnectionPool();
+		}
+		if(!isInit)
+		{
+			try 
+			{
+				instance.initPool();
+			} 
+			catch (ConnectionPoolException e) 
+			{
+				e.printStackTrace();
+			}
+		}
+		return instance;
+	}
+	
+	private ConnectionPool()
+	{		
+		this.driverName = DBParameter.DB_DRIVER;
+		this.url = DBParameter.DB_URL;
+		this.user = DBParameter.DB_USER;
+		this.password = DBParameter.DB_PASSWORD;
 		
 		try
 		{
-			this.poolSize = Integer.parseInt(dbResourseManager.getValue(DBParameter.DB_PASSWORD));
+			this.poolSize = Integer.parseInt(DBParameter.DB_POOL_SIZE);
 		}
 		catch(NumberFormatException e)
 		{
@@ -75,27 +96,17 @@ public class ConnectionPool
 				PooledConnection pooledConnection = new PooledConnection(conn);
 				available.add(pooledConnection);
 			}
+			isInit = true;
 		}
 		catch(SQLException e)
 		{
+			e.printStackTrace();
 			throw new ConnectionPoolException("", e);
 		}
 		catch(ClassNotFoundException e)
 		{
+			e.printStackTrace();
 			LOG.error("Cannot find database!");
-		}
-	}
-	
-	private void clearConnectionQueue()
-	{
-		try
-		{
-			closeConnectionQueue(givenAway);
-			closeConnectionQueue(available);
-		}
-		catch(SQLException e)
-		{
-			LOG.error("Error closing the connection!");
 		}
 	}
 	
@@ -109,6 +120,7 @@ public class ConnectionPool
 		}
 		catch(InterruptedException e)
 		{
+			e.printStackTrace();
 			LOG.error("Error connecting to the datasource!");
 		}
 		return conn;
@@ -122,6 +134,7 @@ public class ConnectionPool
 		}
 		catch(SQLException e)
 		{
+			e.printStackTrace();
 			LOG.error("Connection isn't returned to the pool!");
 		}
 		
@@ -131,6 +144,7 @@ public class ConnectionPool
 		}
 		catch(SQLException e)
 		{
+			e.printStackTrace();
 			LOG.error("ResultSet isn't closed!");
 		}
 		
@@ -140,6 +154,7 @@ public class ConnectionPool
 		}
 		catch(SQLException e)
 		{
+			e.printStackTrace();
 			LOG.error("Statement isn't closed!");
 		}
 	}
@@ -152,6 +167,7 @@ public class ConnectionPool
 		}
 		catch(SQLException e)
 		{
+			e.printStackTrace();
 			LOG.error("Connection isn't returned to the pool!");
 		}
 		
@@ -161,11 +177,26 @@ public class ConnectionPool
 		}
 		catch(SQLException e)
 		{
+			e.printStackTrace();
 			LOG.error("Statement isn't closed!");
 		}
 	}
 	
-	public void closeConnectionQueue(BlockingQueue<Connection> queue) throws SQLException
+	public void clearConnectionQueue()
+	{
+		try
+		{
+			closeConnectionQueue(givenAway);
+			closeConnectionQueue(available);
+		}
+		catch(SQLException e)
+		{
+			e.printStackTrace();
+			LOG.error("Error closing the connection!");
+		}
+	}
+	
+	private void closeConnectionQueue(BlockingQueue<Connection> queue) throws SQLException
 	{
 		Connection conn;
 		while((conn = queue.poll()) != null)
@@ -177,6 +208,8 @@ public class ConnectionPool
 			((PooledConnection) conn).reallyClose();
 		}
 	}
+	
+	////////////////////////////////////////////////////
 	
 	private class PooledConnection implements Connection
 	{

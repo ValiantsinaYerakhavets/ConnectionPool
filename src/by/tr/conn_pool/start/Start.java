@@ -2,13 +2,49 @@ package by.tr.conn_pool.start;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.Test;
+
+import by.tr.conn_pool.pool.ConnectionPool;
+import by.tr.conn_pool.pool.ConnectionPoolException;
 
 public class Start 
 {
 	public static void main(String[] args)
 	{
+		ConnectionPool pool = null;
+		Connection conn = null;
+		Statement st = null;
+		try 
+		{
+			pool = ConnectionPool.getInstance();
+			conn = pool.takeConnection();
+		} 
+		catch (ConnectionPoolException e) 
+		{
+			e.printStackTrace();
+		}
+	
+		ResultSet result = null;
+		try 
+		{
+			st = conn.createStatement();
+			result = st.executeQuery("SELECT * from users");
+			//System.out.println(result.getString(0));
+		} 
+		catch (SQLException e) 
+		{
+			e.printStackTrace();
+		}
+	
+
+		pool.closeConnection(conn, st);
+		pool.clearConnectionQueue();
+		/*
 		Connection conn = null;
 		try
 		{
@@ -44,6 +80,6 @@ public class Start
 			{
 				System.out.println("SQLException");
 			}
-		}
+		}*/
 	}
 }
