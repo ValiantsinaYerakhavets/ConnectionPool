@@ -1,4 +1,4 @@
-package by.tr.conn_pool.pool;
+package by.tr.library.dao.pool;
 
 public class ConnectionPoolException extends Exception
 {

@@ -1,4 +1,4 @@
-package by.tr.conn_pool.pool;
+package by.tr.library.dao.pool;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -39,6 +39,7 @@ public class ConnectionPool
 			try 
 			{
 				instance.initPool();
+				isInit = true;
 			} 
 			catch (ConnectionPoolException e) 
 			{
@@ -58,7 +59,7 @@ public class ConnectionPool
 		
 		try
 		{
-			this.poolSize = Integer.parseInt(DBParameter.DB_POOL_SIZE);
+			this.poolSize = Integer.parseInt(resourseManager.getValue(DBParameter.DB_POOL_SIZE));
 		}
 		catch(NumberFormatException e)
 		{
@@ -123,7 +124,7 @@ public class ConnectionPool
 		{
 			throw new SQLException("Error deleting from queue!");
 		}
-		boolean offer = givenAway.offer(connection);
+		boolean offer = available.offer(connection);
 		if(!offer)
 		{
 			throw new SQLException("Error allocating connection in the pool!");
